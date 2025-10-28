@@ -7,7 +7,7 @@
 using namespace std;
 
 enum GameScreens { Main, Play, GameOver };
-GameScreens actualScreen = Play;
+GameScreens actualScreen = Main;
 
 class Vector2d {
 public:
@@ -243,6 +243,15 @@ public:
 		spawnDelay = 2.f;
 	}
 
+	void Reset() {
+		position = startPosition;
+		actualState = Chasing;
+		butterflyTimer = 0.f;
+		spawnDelay = 0.f;
+		isAlive = true;
+		speed = 120.f;
+	}
+
 	void Update(Player& player, float deltaTime) {
 		// wait some seconds before moving
 		if (spawnDelay > 0.f) {
@@ -378,8 +387,9 @@ int main() {
 		{440, 700},
 	};
 
+
 	for (int i = 0; i < amountOfBees; i++) {
-		beeContainer[i].startPosition = beeStartPositions[i % 3];
+		beeContainer[i].startPosition = beeStartPositions[i];
 		beeContainer[i].Respawn();
 	}
 
@@ -403,6 +413,13 @@ int main() {
 
 		switch (actualScreen) {
 		case Main:
+
+			DrawText("PRESS SPACE TO START", 210, 400, 30, WHITE);
+
+			if (IsKeyDown(KEY_SPACE)) {
+				actualScreen = Play;
+			}
+
 			break;
 		case Play:
 
@@ -420,21 +437,6 @@ int main() {
 				if (!fly.isAlive) {
 					fly.Respawn(screenWidth, screenHeight);
 					fly.isAlive = true;
-				}
-
-				if (player.score >= fliesToWin) {
-					currentLevel++;
-
-					switch (currentLevel) {
-						case 2: fliesToWin = 10; 
-							break;
-						case 3: fliesToWin = 30; 
-							break;
-						default: actualScreen = GameOver; 
-							break;
-					}
-					//reset
-					player.score = 0;
 				}
 			}
 
@@ -460,20 +462,38 @@ int main() {
 			}
 
 			// Level Update
-			if (currentLevel == 1) {
-				amountOfButterflies = 1;
-				amountOfBees = 1;
-			}
-			if (currentLevel == 2) {
-				amountOfButterflies = 2;
-				amountOfBees = 2;
-			}
-			if (currentLevel == 3) {
-				amountOfButterflies = 4;
-				amountOfBees = 3;
-			}
 
+			if (player.score >= fliesToWin) {
+				currentLevel++;
+				player.score = 0;
+			}
+			switch (currentLevel) {
+			case 2:
+				fliesToWin = 10;
+				amountOfBees = 2;
+				beeContainer.resize(amountOfBees);
+				for (int i = 0; i < amountOfBees; i++) {
+					beeContainer[i].startPosition = beeStartPositions[i];
+					beeContainer[i].Reset();
+				}
+				break;
+			case 3:
+				fliesToWin = 25;
+				amountOfBees = 3;
+				beeContainer.resize(amountOfBees);
+				for (int i = 0; i < amountOfBees; i++) {
+					beeContainer[i].startPosition = beeStartPositions[i];
+					beeContainer[i].Reset();
+				}
+				break;
+				}
+			
+			// Show Level
+			DrawText(TextFormat("LEVEL %i", currentLevel), halfScreenWidth - 30, 10, 20, WHITE);
+
+			// Show Score
 			DrawText(TextFormat("Flies eaten: %i", player.score), 10, 10, 20, YELLOW);
+
 			// Show Lives
 			for (int i = 0; i < player.lives; i++) {
 				DrawCircle(30 + i * 40, 50, 15, RED);
@@ -481,6 +501,14 @@ int main() {
 
 			break;
 		case GameOver:
+
+			DrawText("GAME OVER", 210, 260, 60, WHITE);
+			DrawText("PRESS SPACE TO RESTART", 200, 420, 30, WHITE);
+
+			if (IsKeyDown(KEY_SPACE)) {
+				actualScreen = Play;
+			}
+
 			break;
 		}
 
