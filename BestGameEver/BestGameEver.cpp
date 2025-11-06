@@ -299,6 +299,16 @@ public:
 					player.score++;
 					Respawn();
 				}
+
+				// doesn't go out of the screen
+				if (position.x < 10 || position.x > GetScreenWidth() - 10) {
+
+					direction.x *= -1;
+				}
+				if (position.y < 10 || position.y > GetScreenHeight() - 10) {
+					
+					direction.y *= -1;
+				}
 			}
 
 			if (actualState == Dead) {
