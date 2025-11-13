@@ -7,7 +7,7 @@
 using namespace std;
 
 enum GameScreens { Main, Play, GameOver };
-GameScreens actualScreen = Main;
+GameScreens actualScreen = Play;
 
 class Vector2d {
 public:
@@ -154,18 +154,18 @@ public:
 		}
 	}
 
-	void ScreenWrapping() {
-		if (position.x > GetScreenWidth()) {
-			position.x = 0;
+	void ScreenLimits(int screenWidth, int screenHeight) {
+		if (position.x > screenWidth - size) {
+			position.x = screenWidth - size;
 		}
-		if (position.x < 0) {
-			position.x = GetScreenWidth();
+		if (position.x < size) {
+			position.x = size;
 		}
-		if (position.y > GetScreenHeight()) {
-			position.y = 0;
+		if (position.y > screenHeight - size) {
+			position.y = screenHeight - size;
 		}
-		if (position.y < 0) {
-			position.y = GetScreenHeight();
+		if (position.y < size) {
+			position.y = size;
 		}
 	}
 
@@ -173,7 +173,7 @@ public:
 		DrawCircle(position.x, position.y, size, RAYWHITE);
 
 		if (isTongueOut) {
-			DrawLine(position.x, position.y, tongueEnd.x, tongueEnd.y, PINK);
+			DrawLineEx(Vector2{position.x, position.y}, Vector2{tongueEnd.x, tongueEnd.y}, 8.f, PINK);
 		}
 	}
 };
@@ -185,6 +185,7 @@ public:
 	Vector2d position;
 	float size = 10.f;
 	bool isAlive = true;
+	bool isAttachedToTongue = false;
 
 	void Respawn(int inScreenWidth, int inScreenHeight) {
 		float margin = 10.f;
@@ -195,6 +196,18 @@ public:
 	}
 
 	void Update(Player& player) {
+
+		// Sticks to the tongue when it is catched
+		if (isAttachedToTongue) {
+			position = player.tongueEnd;
+
+			if (!player.isTongueOut) {
+				isAttachedToTongue = false;
+				isAlive = false;
+				player.score++;
+			}
+			return;
+		}
 
 		if (isAlive) {
 			// Collision with Player
@@ -207,9 +220,8 @@ public:
 
 			// Colision with Tongue
 			float distanceToTongue = position.DistanceToTarget(player.tongueEnd);
-			if (distanceToTongue < size + 5.f) {
-				isAlive = false;
-				player.score++;
+			if (distanceToTongue < size + 5.f && player.isTongueExtending) {
+				isAttachedToTongue = true;
 				return;
 			}
 		}
@@ -300,7 +312,7 @@ public:
 					Respawn();
 				}
 
-				// doesn't go out of the screen
+				// doesn't go out of the screen   ****DOESNT WORK*****
 				if (position.x < 10 || position.x > GetScreenWidth() - 10) {
 
 					direction.x *= -1;
@@ -335,6 +347,7 @@ public:
 	Vector2d position;
 	float size = 15.f;
 	bool isAlive = true;
+	bool isAttachedToTongue = false;
 
 	void Respawn(int screenWidth, int screenHeight) {
 		float margin = 20.f;
@@ -343,6 +356,7 @@ public:
 	}
 
 	bool Update(Player& player) {
+
 		if (isAlive) {
 			float distanceToPlayer = position.DistanceToTarget(player.position);
 			float distanceToTongue = position.DistanceToTarget(player.tongueEnd);
@@ -435,8 +449,8 @@ int main() {
 
 			// Player Update
 			player.Controller();
-			player.ScreenWrapping();
 			player.Tongue(deltaTime);
+			player.ScreenLimits(screenWidth, screenHeight);
 			player.Draw();
 
 			// Fly Update
@@ -446,7 +460,6 @@ int main() {
 
 				if (!fly.isAlive) {
 					fly.Respawn(screenWidth, screenHeight);
-					fly.isAlive = true;
 				}
 			}
 
@@ -515,7 +528,7 @@ int main() {
 			DrawText("GAME OVER", 210, 260, 60, WHITE);
 			DrawText("PRESS SPACE TO RESTART", 200, 420, 30, WHITE);
 
-			if (IsKeyDown(KEY_SPACE)) {
+			if (IsKeyPressed(KEY_SPACE)) {
 				actualScreen = Play;
 			}
 
