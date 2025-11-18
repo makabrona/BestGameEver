@@ -7,7 +7,7 @@
 using namespace std;
 
 enum GameScreens { Main, Play, Level, GameOver };
-GameScreens actualScreen = Play;
+GameScreens actualScreen = Main;
 
 class Vector2d {
 public:
@@ -105,6 +105,12 @@ public:
 	}
 };
 
+// Global variables
+int pointsGained = 0;
+float pointsGainedTimer = 0.5f;
+bool drawPointsGained = false;
+Vector2d pointsPosition;
+
 class Player {
 public:
 
@@ -127,20 +133,19 @@ public:
 	bool isTongueExtending = false;         // if tongue is extending or retracting
 
 	void Controller() {
+
 		Vector2d offsetPosition{ 0.f, 0.f };
+
 		if (IsKeyDown(KEY_W)) {
 			offsetPosition.y -= 1;
 			tongueDirection = { 0, -1 };
-		}
-		else if (IsKeyDown(KEY_S)) {
+		} else if (IsKeyDown(KEY_S)) {
 			offsetPosition.y += 1;
 			tongueDirection = { 0, 1 };
-		}
-		else if (IsKeyDown(KEY_A)) {
+		} else if (IsKeyDown(KEY_A)) {
 			offsetPosition.x -= 1;
 			tongueDirection = { -1, 0 };
-		}
-		else if (IsKeyDown(KEY_D)) {
+		} else if (IsKeyDown(KEY_D)) {
 			offsetPosition.x += 1;
 			tongueDirection = { 1, 0 };
 		}
@@ -151,6 +156,7 @@ public:
 	}
 
 	void Tongue(float deltaTime) {
+
 		if (IsKeyPressed(KEY_SPACE) && (!isTongueOut)) {
 			isTongueOut = true;
 			isTongueExtending = true;
@@ -159,28 +165,32 @@ public:
 		}
 
 		if (isTongueOut) {
+
 			if (isTongueExtending) {
+
 				tongueCurrentLength += tongueSpeed * deltaTime;
 
 				if (tongueCurrentLength >= tongueMaxLength) {
+
 					tongueCurrentLength = tongueMaxLength;
 					isTongueExtending = false;
 				}
-			}
-			else {
+			} else {
+
 				tongueCurrentLength -= tongueSpeed * deltaTime;
 
 				if (tongueCurrentLength <= 0.f) {
 					tongueCurrentLength = 0.f;
 					isTongueOut = false;
 				}
-			}
+            }
 
 			tongueEnd = position.SetVectorOffset(tongueDirection.ScaleVector(tongueCurrentLength));
 		}
 	}
 
 	void ScreenLimits(int screenWidth, int screenHeight) {
+
 		if (position.x > screenWidth - size) {
 			position.x = screenWidth - size;
 		}
@@ -196,6 +206,7 @@ public:
 	}
 
 	void Draw() {
+
 		DrawCircle(position.x, position.y, size, RAYWHITE);
 
 		if (isTongueOut) {
@@ -213,7 +224,9 @@ public:
 	bool isAlive = true;
 	bool isAttachedToTongue = false;
 
+	// Flies spawn in a random position inside the screen
 	void Respawn(int inScreenWidth, int inScreenHeight) {
+
 		float margin = 10.f;
 
 		position = { margin + rand() % (int)(inScreenWidth - 2 * margin),margin + rand() % (int)(inScreenHeight - 2 * margin) };
@@ -222,8 +235,10 @@ public:
 	}
 
 	void Update(Player& player) {
-		// Sticks to the tongue when it is catched
+
+		// Flies stick to the tongue when catched (and go to frog's mouth) until tongue is not out anymore
 		if (isAttachedToTongue) {
+
 			position = player.tongueEnd;
 
 			if (!player.isTongueOut) {
@@ -235,18 +250,40 @@ public:
 		}
 
 		if (isAlive) {
-			// Collision with Player
+
+			// flies collision with player
 			float distanceToPlayer = position.DistanceToTarget(player.position);
+
 			if (distanceToPlayer < size + player.size) {
+
 				isAlive = false;
 				player.fliesEaten++;
+
+				// showing points earned on the eaten fly position
+				pointsGained = 10;
+				player.score += pointsGained;
+				pointsPosition = position;
+				drawPointsGained = true;
+				pointsGainedTimer = 0.5f;
+
 				return;
 			}
 
-			// Colision with Tongue
+			// flies collision with tongue
 			float distanceToTongue = position.DistanceToTarget(player.tongueEnd);
+
 			if (distanceToTongue < size + 5.f && player.isTongueExtending) {
+				
 				isAttachedToTongue = true;
+
+				// showing points earned on the catched fly position
+				pointsGained = 10;
+				player.score += pointsGained;
+				pointsPosition = position;
+				drawPointsGained = true;
+				pointsGainedTimer = 0.5f;
+				player.score += pointsGained;
+
 				return;
 			}
 		}
@@ -282,11 +319,12 @@ public:
 	bool isDetected{ false };
 	bool isSearching{ false };
 	Vector2d lastSeenPosition;
-	float searchTimer = GetFrameTime();
+	float searchTimer = 0.f;
 
 	// for butterfly mode
 	bool isEscaping = false;
 	float butterflyTimer = 0.f;
+
 
 	void Respawn(float inSpawnDelay = 2.f) {
 		position = startPosition;
@@ -304,6 +342,7 @@ public:
 		speed = 120.f;
 	}
 
+	// So Bees don't go out of the screen (when they escape from the player)
 	void ScreenLimits(int screenWidth, int screenHeight) {
 		if (position.x > screenWidth - size) {
 			position.x = screenWidth - size;
@@ -320,6 +359,7 @@ public:
 	}
 
 	void Update(Player& player, float deltaTime) {
+
 		// wait some seconds before moving
 		if (spawnDelay > 0.f) {
 			spawnDelay -= deltaTime;
@@ -327,25 +367,22 @@ public:
 				spawnDelay = 0.f;
 				isAlive = true;
 			}
-			else {
-				return;
-			}
 		}
 
 		if (isAlive) {
 			if (actualState == Chasing) {
 				switch (type) {
 				case 1:
-					// BEE 1: Follows player
+					// Bee type 1: Follows player's position
 				{
-					// Direction towards player
+
 					Vector2d toPlayer = position.VectorTowardsTarget(player.position);
 					Vector2d toPlayerDirection = toPlayer.NormalizeVector(); // normalize
 					position = position.SetVectorOffset(toPlayerDirection.ScaleVector(speed * deltaTime)); //move towards player
 				}
 				break;
 				case 2:
-					// BEE 2: Patrol + follow
+					// Bee type 2: Patrol and follow
 				{
 					Vector2d toPlayer = position.VectorTowardsTarget(player.position);
 					float distanceToPlayer = toPlayer.CalculateMagnitude();
@@ -424,24 +461,34 @@ public:
 				// dies if collides with player or tongue
 				float distanceToPlayer = position.DistanceToTarget(player.position);
 				float distanceToTongue = position.DistanceToTarget(player.tongueEnd);
+
 				if (distanceToPlayer < size + player.size || distanceToTongue < size + 5.f) {
+					
 					actualState = Dead;
-					player.fliesEaten++;
-					player.score += 222;
-					DrawText("+222", position.x, position.y, 20, YELLOW);
-					Respawn();
+
+					pointsGained = 200;
+					player.score += pointsGained;
+					pointsPosition = position;
+					drawPointsGained = true;
+					pointsGainedTimer = 0.5f;
+					
 				}
 			}
 
 			if (actualState == Dead) {
-				// go back to Starting Point
+
+				// change skin to dead bee (angel + transparency)
+
+				// Fly back to the respawn point
+				float deadSpeed = 60.f;
+				
 				Vector2d toStartingPoint = position.VectorTowardsTarget(startPosition);
 				Vector2d direction = toStartingPoint.NormalizeVector();
-				position = position.SetVectorOffset(direction.ScaleVector(speed * deltaTime));
+				position = position.SetVectorOffset(direction.ScaleVector(deadSpeed * deltaTime));
 
 				// go back to chasing mode
 				if (position.DistanceToTarget(startPosition) < 1.f) {
-					actualState = Chasing;
+					Respawn();
 				}
 			}
 		}
@@ -469,9 +516,16 @@ public:
 		if (isAlive) {
 			float distanceToPlayer = position.DistanceToTarget(player.position);
 			float distanceToTongue = position.DistanceToTarget(player.tongueEnd);
-
+			// WHEN IS EATEN
 			if (distanceToPlayer < size + player.size || distanceToTongue < size + 5.f) {
 				isAlive = false;
+
+				pointsGained = 100;
+				player.score += pointsGained;
+				pointsPosition = position;
+				drawPointsGained = true;
+				pointsGainedTimer = 0.5f;
+
 				return true;
 			}
 			else {
@@ -510,11 +564,6 @@ int main() {
 	float levelScreenTimer = 0.f;
 	int fliesToWin;
 
-	// Score Text (winnin points when eat butterfly or bee)
-	bool getPoints = false;
-	float getPointsTimer = 0.f;
-	int getPointsValue = 0;
-
 	// Player Setup
 	Player player;
 	player.position = { 400, 700 };
@@ -552,6 +601,8 @@ int main() {
 
 	while (!WindowShouldClose()) {
 		float deltaTime = GetFrameTime();
+		bee1.searchTimer = GetFrameTime();
+		bee2.searchTimer = GetFrameTime();
 
 		BeginDrawing();
 		ClearBackground(BLACK);
@@ -620,8 +671,6 @@ int main() {
 					bee2.actualState = Bee::Butterfly;
 					bee2.butterflyTimer = 5.f;
 
-					
-
 				}
 				butterfly.Draw();
 			}
@@ -649,21 +698,35 @@ int main() {
 				actualScreen = GameOver;
 			}
 
+			// Show points gained when eat something
+
+			if (drawPointsGained) {
+				pointsGainedTimer -= deltaTime;
+				if (pointsGainedTimer <= 0.f) {
+					drawPointsGained = false;
+				}
+			}
+
+			if (drawPointsGained) {
+				DrawText(TextFormat("+%i", pointsGained), (int)pointsPosition.x, (int)pointsPosition.y, 20, YELLOW);
+			}
+
 			//Draw Map
 			DrawMap();
 
 			// Show Level
 			DrawText(TextFormat("LEVEL %i", currentLevel), halfScreenWidth - 30, 10, 20, WHITE);
 
-			// Show Score
+			// Show Flies Eaten
 			DrawText(TextFormat("Flies eaten: %i", player.fliesEaten), 10, 10, 20, YELLOW);
+
+			// Show Highscore
+			DrawText(TextFormat("%i", player.score), 700, 10, 20, YELLOW);
 
 			// Show Lives
 			for (int i = 0; i < player.lives; i++) {
 				DrawCircle(30 + i * 40, 50, 15, RED);
 			}
-
-			
 
 			break;
 
@@ -709,6 +772,9 @@ int main() {
 		case GameOver:
 
 			DrawText("GAME OVER", 210, 260, 60, WHITE);
+
+			DrawText(TextFormat("SCORE %i", (int)player.score), 210, 360, 20, WHITE);
+
 			DrawText("PRESS SPACE TO RESTART", 200, 420, 30, WHITE);
 
 			if (IsKeyPressed(KEY_SPACE)) {
