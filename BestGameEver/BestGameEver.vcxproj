@@ -123,7 +123,21 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="BestGameEver.cpp" />
+    <ClCompile Include="Bee.cpp" />
+    <ClCompile Include="Butterfly.cpp" />
+    <ClCompile Include="Fly.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="Game.cpp" />
+    <ClCompile Include="Player.cpp" />
+    <ClCompile Include="Vector2d.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Bee.h" />
+    <ClInclude Include="Butterfly.h" />
+    <ClInclude Include="Fly.h" />
+    <ClInclude Include="game.h" />
+    <ClInclude Include="Player.h" />
+    <ClInclude Include="Vector2d.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
