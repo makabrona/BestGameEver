@@ -63,7 +63,7 @@ int main() {
 	
 	InitWindow(screenWidth, screenHeight, "BestGameEver");
 	SetTargetFPS(60);
-
+	LoadTextures();
 	
 	while (!WindowShouldClose()) {
 		float deltaTime = GetFrameTime();
@@ -99,6 +99,7 @@ int main() {
 		switch (actualScreen) {
 		case Main:
 
+			DrawTexture(backgroundMainMenu, 0, 0, WHITE);
 			DrawText("PRESS SPACE TO START", 210, 400, 30, WHITE);
 
 			if (IsKeyDown(KEY_SPACE)) {
@@ -110,6 +111,8 @@ int main() {
 			break;
 		case Play:
 	
+			DrawTexture(backgroundPlay, 0, 0, WHITE);
+
 			// Player Update
 			player.Controller();
 			player.Tongue(deltaTime);
@@ -196,8 +199,22 @@ int main() {
 			break;
 
 		case Level:
+
 			// Show this screen when level up
-			ClearBackground(BLACK);
+			DrawTexture(backgroundLevelScreen, 0, 0, WHITE);
+			
+
+			switch (nextLevel) {
+			case 1: 
+				fliesToWin = 6;
+				break;
+			case 2:
+				fliesToWin = 10;
+				break;
+			case 3:
+				fliesToWin = 20;
+				break;
+			}
 
 			DrawText(TextFormat("LEVEL %i", nextLevel), halfScreenWidth - 30, halfScreenHeight, 50, WHITE);
 			DrawText(TextFormat("EAT %i FLIES", fliesToWin), halfScreenWidth - 30, halfScreenHeight + 50, 20, WHITE);
@@ -236,6 +253,8 @@ int main() {
 
 		case GameOver:
 
+			DrawTexture(backgroundGameOver, 0, 0, WHITE);
+
 			DrawText("GAME OVER", 210, 260, 60, WHITE);
 
 			DrawText(TextFormat("SCORE %i", (int)player.score), 210, 360, 20, WHITE);
@@ -243,7 +262,24 @@ int main() {
 			DrawText("PRESS SPACE TO RESTART", 200, 420, 30, WHITE);
 
 			if (IsKeyPressed(KEY_SPACE)) {
+				// reset all variables
 				actualScreen = Play;
+				currentLevel = 1;
+				nextLevel = 1;
+				previousLevel = 0;
+				player.position = { 400, 700 };
+				player.fliesEaten = 0;
+				player.score = 0;
+				player.lives = 3;
+				// reset bees:
+				bee1.Respawn();
+				bee2.Respawn();
+				//reset flies and butterflies
+				for (Fly& fly : flyContainer) {
+					fly.Respawn(screenWidth, screenHeight);
+				}
+
+				butterflyContainer.clear();
 			}
 
 			break;
@@ -252,6 +288,8 @@ int main() {
 
 		EndDrawing();
 	}
+
+	UnloadTextures();
 
 	CloseWindow();
 	return 0;
